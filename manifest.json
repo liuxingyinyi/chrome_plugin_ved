@@ -58,6 +58,7 @@
   ],
   // 权限申请
   "permissions": [
+    "downloads",
     // 通知
     "webRequest",
     // web请求

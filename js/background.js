@@ -1,4 +1,3 @@
-
 function fetchVehicleData() {
     //请求百度 不会拦截
     const requestBody = VEHICLE_REQUEST_BODY;
@@ -20,8 +19,8 @@ function fetchVehicleData() {
 }
 
 function exportVehicleData(records) {
-    const header = ['品牌', '车系', '车型', '首次上牌', '表显里程', '门店', '库龄', '排放标准', '评估师', '排量', 'VIN码', '车辆编号', '出厂日期',
-        '网络标价', '库存状态', '微店上架', '采购类型', '采购价', '采购日期', '展厅标价', '销售底价', '批发价', '新车指导价', '库存描述', '库存描述'];
+    const header = ['车辆来源', '车辆状态', '库存状态', '微店上架', '品牌', '车系', '车型', '首次上牌', '表显里程', '门店', '库龄', '排放标准', '评估师', '排量', 'VIN码', '车辆编号', '出厂日期',
+        '网络标价', '采购类型', '采购价', '采购日期', '展厅标价', '销售底价', '批发价', '新车指导价', '库存描述', '库存描述', "图片"];
     const list = records.map(v => {
         const fieldObj = {};
 
@@ -30,6 +29,10 @@ function exportVehicleData(records) {
             fieldObj[code] = displayValue || value
         });
         const arr = [];
+        arr.push(_.get(fieldObj, 'car_field_source_car'))
+        arr.push(_.get(fieldObj, 'car_field_operation_phase'))
+        arr.push(_.get(fieldObj, 'car_field_stock_status'))
+        arr.push(_.get(fieldObj, 'car_field_weidian_is_upshelf'))
         arr.push(_.get(v, 'keyField.brandName'))
         arr.push(_.get(v, 'keyField.seriesName'))
         arr.push(_.get(v, 'keyField.modelName'))
@@ -44,8 +47,6 @@ function exportVehicleData(records) {
         arr.push(_.get(fieldObj, 'car_field_vehicle_number'))
         arr.push(_.get(fieldObj, 'car_field_production_date'))
         arr.push(_.get(fieldObj, 'car_field_sale_price'))
-        arr.push(_.get(fieldObj, 'car_field_stock_status'))
-        arr.push(_.get(fieldObj, 'car_field_weidian_is_upshelf'))
         arr.push(_.get(fieldObj, 'car_field_purchase_type'))
         arr.push(_.get(fieldObj, 'car_field_purchase_price'))
         arr.push(_.get(fieldObj, 'car_field_contract_sign_date'))
@@ -55,6 +56,9 @@ function exportVehicleData(records) {
         arr.push(_.get(fieldObj, 'car_field_new_price'))
         arr.push(_.get(fieldObj, 'car_field_status_description'))
         arr.push(_.get(fieldObj, 'car_field_manager_price'))
+        const pic = _.get(v, 'carRecord.carPicture');
+        arr.push(pic);
+        download(pic,_.get(v, 'keyField.modelName'))
         return arr;
     });
     exportFile('车辆信息', header, list);
@@ -84,7 +88,7 @@ function fetchAccountData() {
 
 /*导出客户数据*/
 function exportAccount(records) {
-    const header = ['姓名', "电话", "区域", "重点客户", "预算", "预计买车时间", "意向车系", "下次跟进时间", "最近跟进内容",
+    const header = [ '姓名', "电话", "区域", "重点客户", "预算", "预计买车时间", "意向车系", "下次跟进时间", "最近跟进内容",
         "销售", "客户来源"];
     const list = records.map(v => {
         const arr = [];
@@ -157,5 +161,16 @@ function exportOrder(records) {
     exportFile('订单数据', header, list);
 }
 
+
+function download(url,fileName) {
+    const f=  url.replace(/http.*\//,'')
+    console.log('下载文件', url);
+    chrome.downloads.download({
+        url: url,
+        filename: f,
+        saveAs: !1,
+        conflictAction: "overwrite"
+    });
+}
 
 
