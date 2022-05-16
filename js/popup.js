@@ -228,36 +228,13 @@ $('#mock_fetch_data').click(e=>{
 	bg.downloadData();
 })
 
-
-new Vue({
-	el: '#popup-app',
-	data: {
-		foo: 'bar',
-		accountList: [],
-	},
-	created: function () {
-		// `this` 指向 vm 实例
-		console.log('a is: ' + this.a)
-	},
-	methods: {
-		fetchVehicleData() {
-			chrome.extension.getBackgroundPage().fetchVehicleData();
-		},
-		//请求客户数据
-		fetchAccountData() {
-			chrome.extension.getBackgroundPage().fetchAccountData();
-		},
-		fetchOrderData(){
-			chrome.extension.getBackgroundPage().fetchOrderData();
-		},
-
-
-		exportData() {
-			chrome.storage.local.get("accountData", function (result) {
-
-			});
-		}
-
-	},
+$('#fetchVehicleData').click(e=>{
+	chrome.extension.getBackgroundPage().fetchVehicleData();
 })
 
+$('#fetchAccountData').click(e=>{
+	chrome.extension.getBackgroundPage().fetchAccountData();
+})
+$('#fetchOrderData').click(e=>{
+	chrome.extension.getBackgroundPage().fetchOrderData();
+})

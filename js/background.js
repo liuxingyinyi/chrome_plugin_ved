@@ -158,26 +158,4 @@ function exportOrder(records) {
 }
 
 
-new Vue({
-    el: '#app',
-    data: {
-        foo: 'bar',
-        accountList: [],
-    },
-    created: function () {
-        // `this` 指向 vm 实例
-        console.log('a is: ' + this.a)
-    },
-    methods: {
-
-        exportData() {
-            chrome.storage.local.get("accountData", function (result) {
-
-            });
-        }
-
-    },
-})
-
-
 
