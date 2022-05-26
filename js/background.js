@@ -11,6 +11,26 @@ function fetchVehicleData() {
     })
 }
 
+/*拉取车辆媒体信息*/
+function fetchVehicleMediaInfo(carId) {
+    fetchData("http://crazyracing-kartrider.souche.com/web/carEditQuery/queryCarMediaValues.json?carId=" + carId, {
+        method: 'get'
+    }).then(data => {
+        const arr = data.picturesFieldValues.picture_type_UYeyTWcMNN;
+        const picArr = [];
+        arr.map(f => {
+            f.map(v => {
+                const {content} = v;
+                picArr.push(content);
+            })
+        });
+        picArr.map(v => {
+            this.download(v);
+        })
+    })
+
+}
+
 function exportVehicleData(records) {
     const header = ['车辆来源', '车辆状态', '库存状态', '微店上架', '品牌', '车系', '车型', '首次上牌', '表显里程', '门店', '库龄', '排放标准', '评估师', '排量', 'VIN码', '车辆编号', '出厂日期',
         '网络标价', '采购类型', '采购价', '采购日期', '展厅标价', '销售底价', '批发价', '新车指导价', '库存描述', '库存描述', "图片"];
@@ -51,7 +71,8 @@ function exportVehicleData(records) {
         arr.push(_.get(fieldObj, 'car_field_manager_price'))
         const pic = _.get(v, 'carRecord.carPicture');
         arr.push(pic);
-        download(pic, _.get(v, 'keyField.modelName'))
+        // download(pic, _.get(v, 'keyField.modelName'))
+        this.fetchVehicleMediaInfo(v.recordId)
         return arr;
     });
     exportFile('车辆信息', header, list);
@@ -163,14 +184,18 @@ function fetchData(url, init) {
 
 /*下载文件*/
 function download(url, fileName) {
-    const f = url.replace(/http.*\//, '')
-    console.log('下载文件', url);
-    chrome.downloads.download({
-        url: url,
-        filename: f,
-        saveAs: !1,
-        conflictAction: "overwrite"
-    });
+    if (url) {
+        const f = url.replace(/http.*\//, '')
+        console.log('下载文件', url);
+        if (f) {
+            chrome.downloads.download({
+                url: url,
+                filename: f,
+                saveAs: !1,
+                conflictAction: "overwrite"
+            });
+        }
+    }
 }
 
 
