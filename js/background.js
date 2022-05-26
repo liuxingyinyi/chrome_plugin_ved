@@ -1,21 +1,14 @@
 function fetchVehicleData() {
     //请求百度 不会拦截
     const requestBody = VEHICLE_REQUEST_BODY;
-    fetch("http://crazyracing-kartrider.souche.com/web/v3/carViewQuery/queryRecordPageInfoForPc.json",
+    fetchData("http://crazyracing-kartrider.souche.com/web/v3/carViewQuery/queryRecordPageInfoForPc.json",
         {
             method: 'post',
             body: JSON.stringify(requestBody)
-        }
-    )
-        .then(response => response.json())
-        .then(json => {
-            console.info("数据拉取成功", json)
-            const records = json.data.common.records;
-            exportVehicleData(records)
-        })
-        .catch(function (err) {
-            console.log('Fetch错误:' + err);
-        });
+        }).then(data => {
+        const records = data.common.records;
+        exportVehicleData(records)
+    })
 }
 
 function exportVehicleData(records) {
@@ -58,7 +51,7 @@ function exportVehicleData(records) {
         arr.push(_.get(fieldObj, 'car_field_manager_price'))
         const pic = _.get(v, 'carRecord.carPicture');
         arr.push(pic);
-        download(pic,_.get(v, 'keyField.modelName'))
+        download(pic, _.get(v, 'keyField.modelName'))
         return arr;
     });
     exportFile('车辆信息', header, list);
@@ -69,26 +62,21 @@ function exportVehicleData(records) {
 //请求客户数据
 function fetchAccountData() {
     const reqeustBody = ACCOUNT_REQUEST_BODY;
-    return fetch("http://super-mario.souche.com/v1/crm/customerViewAction/queryCustomerRecordPageInfo.json",
+    return fetchData("http://super-mario.souche.com/v1/crm/customerViewAction/queryCustomerRecordPageInfo.json",
         {
             method: 'post',
             body: JSON.stringify(reqeustBody)
         }
     )
-        .then(response => response.json())
-        .then(json => {
-            console.info("数据拉取成功", json);
-            const records = json.data.common.records;
+        .then(data => {
+            const records = data.common.records;
             exportAccount(records);
-        })
-        .catch(function (err) {
-            console.log('Fetch错误:' + err);
         });
 }
 
 /*导出客户数据*/
 function exportAccount(records) {
-    const header = [ '姓名', "电话", "区域", "重点客户", "预算", "预计买车时间", "意向车系", "下次跟进时间", "最近跟进内容",
+    const header = ['姓名', "电话", "区域", "重点客户", "预算", "预计买车时间", "意向车系", "下次跟进时间", "最近跟进内容",
         "销售", "客户来源"];
     const list = records.map(v => {
         const arr = [];
@@ -116,20 +104,15 @@ function exportAccount(records) {
 function fetchOrderData() {
     const reqeustBody = ORDER_REQUEST_BODY;
     const self = this;
-    return fetch("http://rich-man.souche.com/orderOperationApi/queryRecordPageInfo.json",
+    return fetchData("http://rich-man.souche.com/orderOperationApi/queryRecordPageInfo.json",
         {
             method: 'post',
             body: JSON.stringify(reqeustBody)
         }
     )
-        .then(response => response.json())
-        .then(json => {
-            console.info("数据拉取成功", json);
-            const records = json.data.common.records;
+        .then(data => {
+            const records = data.common.records;
             exportOrder(records);
-        })
-        .catch(function (err) {
-            console.log('Fetch错误:' + err);
         });
 }
 
@@ -161,9 +144,26 @@ function exportOrder(records) {
     exportFile('订单数据', header, list);
 }
 
+/*统一请求http数据*/
+function fetchData(url, init) {
+    return fetch(url, init)
+        .then(response => response.json())
+        .then(json => {
+            const {code, data, msg} = json;
+            if (code == '200') {
+                return data;
+            } else {
+                throw msg
+            }
+        }).catch(e => {
+            console.info("请求失败", e);
+            alert(e);
+        })
+}
 
-function download(url,fileName) {
-    const f=  url.replace(/http.*\//,'')
+/*下载文件*/
+function download(url, fileName) {
+    const f = url.replace(/http.*\//, '')
     console.log('下载文件', url);
     chrome.downloads.download({
         url: url,
