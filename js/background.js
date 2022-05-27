@@ -1,18 +1,24 @@
 function fetchVehicleData() {
     //请求百度 不会拦截
-    const requestBody = VEHICLE_REQUEST_BODY;
-    fetchData("http://crazyracing-kartrider.souche.com/web/v3/carViewQuery/queryRecordPageInfoForPc.json",
-        {
-            method: 'post',
-            body: JSON.stringify(requestBody)
-        }).then(data => {
-        const records = data.common.records;
-        exportVehicleData(records)
-    })
+    const fetchArr = [1, 2, 3, 4, 5].map(page => {
+        const requestBody = {...VEHICLE_REQUEST_BODY, pageNo: page};
+        return fetchData("http://crazyracing-kartrider.souche.com/web/v3/carViewQuery/queryRecordPageInfoForPc.json",
+            {
+                method: 'post',
+                body: JSON.stringify(requestBody)
+            });
+    });
+    Promise.all(fetchArr).then(values => {
+        let records = [];
+        values.map(data => {
+            records = records.concat(data.common.records);
+        });
+        exportVehicleData(records);
+    });
 }
 
 /*拉取车辆媒体信息*/
-function fetchVehicleMediaInfo(carId) {
+function fetchVehicleMediaInfo(carId, vin) {
     fetchData("http://crazyracing-kartrider.souche.com/web/carEditQuery/queryCarMediaValues.json?carId=" + carId, {
         method: 'get'
     }).then(data => {
@@ -25,7 +31,11 @@ function fetchVehicleMediaInfo(carId) {
             })
         });
         picArr.map(v => {
-            this.download(v);
+            let fileName = carId;
+            if (vin && vin !== '-') {
+                fileName = vin;
+            }
+            this.download(v, fileName);
         })
     })
 
@@ -72,7 +82,7 @@ function exportVehicleData(records) {
         const pic = _.get(v, 'carRecord.carPicture');
         arr.push(pic);
         // download(pic, _.get(v, 'keyField.modelName'))
-        this.fetchVehicleMediaInfo(v.recordId)
+        this.fetchVehicleMediaInfo(v.recordId, _.get(fieldObj, 'car_field_vin_number'))
         return arr;
     });
     exportFile('车辆信息', header, list);
@@ -82,17 +92,22 @@ function exportVehicleData(records) {
 
 //请求客户数据
 function fetchAccountData() {
-    const reqeustBody = ACCOUNT_REQUEST_BODY;
-    return fetchData("http://super-mario.souche.com/v1/crm/customerViewAction/queryCustomerRecordPageInfo.json",
-        {
-            method: 'post',
-            body: JSON.stringify(reqeustBody)
-        }
-    )
-        .then(data => {
-            const records = data.common.records;
-            exportAccount(records);
+    const fetchArr = [1, 2, 3, 4, 5].map(page => {
+        const reqeustBody = {...ACCOUNT_REQUEST_BODY, pageNo: page};
+        return fetchData("http://super-mario.souche.com/v1/crm/customerViewAction/queryCustomerRecordPageInfo.json",
+            {
+                method: 'post',
+                body: JSON.stringify(reqeustBody)
+            }
+        )
+    });
+    Promise.all(fetchArr).then(values => {
+        let records = [];
+        values.map(data => {
+            records = records.concat(data.common.records);
         });
+        exportAccount(records);
+    });
 }
 
 /*导出客户数据*/
@@ -123,18 +138,22 @@ function exportAccount(records) {
 }
 
 function fetchOrderData() {
-    const reqeustBody = ORDER_REQUEST_BODY;
-    const self = this;
-    return fetchData("http://rich-man.souche.com/orderOperationApi/queryRecordPageInfo.json",
-        {
-            method: 'post',
-            body: JSON.stringify(reqeustBody)
-        }
-    )
-        .then(data => {
-            const records = data.common.records;
-            exportOrder(records);
+    const fetchArr = [1, 2, 3, 4, 5].map(page => {
+        const reqeustBody = {...ORDER_REQUEST_BODY, pageNo: page};
+        return fetchData("http://rich-man.souche.com/orderOperationApi/queryRecordPageInfo.json",
+            {
+                method: 'post',
+                body: JSON.stringify(reqeustBody)
+            }
+        )
+    });
+    Promise.all(fetchArr).then(values => {
+        let records = [];
+        values.map(data => {
+            records = records.concat(data.common.records);
         });
+        exportOrder(records);
+    });
 }
 
 function exportOrder(records) {
@@ -185,14 +204,14 @@ function fetchData(url, init) {
 /*下载文件*/
 function download(url, fileName) {
     if (url) {
-        const f = url.replace(/http.*\//, '')
-        console.log('下载文件', url);
-        if (f) {
+        if (_.startsWith(url, 'http')) {
+            const f = fileName + '--' + url.replace(/http.*\//, '')
+            console.log('下载文件', url);
             chrome.downloads.download({
                 url: url,
                 filename: f,
-                saveAs: !1,
-                conflictAction: "overwrite"
+                saveAs: false,
+                conflictAction: "uniquify"
             });
         }
     }
