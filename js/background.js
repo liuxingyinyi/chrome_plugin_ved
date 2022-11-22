@@ -1,24 +1,45 @@
+//点击下载数据
 function fetchVehicleData() {
-    //请求百度 不会拦截
-    const requestBody = VEHICLE_REQUEST_BODY;
+    const arr = [{name:'在售',body:ON_SALE},
+        {name:'在售已上架',body:yishangjia},
+        {name:'寄售代销',body:car_tt_sale},
+        {name:'在售未上架',body:car_zaishouweishangjia},
+        {name:'已售',body:car_sold},
+        {name:'已预定',body:car_booked},
+        {name:'退库',body:car_retreat_from_storage},
+        {name:'交强险30天内',body:car_jiaoqiangxiandaoqi_30},
+        {name:'商业险到期30天内',body:car_shangyexiandaoqi_30},
+        {name:'年检到期30天内',body:car_car_nianjiandaoqi_30},
+        {name:'联盟代销',body:car_LMDX},
+    ];
+    for (let requestBody of arr) {
+        fetchVehicleDataByParam(requestBody);
+    }
+}
+
+function fetchVehicleDataByParam(params){
+    const {name, body} = params;
+    body.pageSize = 200;
     fetch("http://crazyracing-kartrider.souche.com/web/v3/carViewQuery/queryRecordPageInfoForPc.json",
         {
             method: 'post',
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(body)
         }
     )
         .then(response => response.json())
         .then(json => {
             console.info("数据拉取成功", json)
             const records = json.data.common.records;
-            exportVehicleData(records)
+            exportVehicleData('车源数据-'+name,records)
         })
         .catch(function (err) {
             console.log('Fetch错误:' + err);
         });
 }
 
-function exportVehicleData(records) {
+
+
+function exportVehicleData(fileName,records) {
     const header = ['车辆来源', '车辆状态', '库存状态', '微店上架', '品牌', '车系', '车型', '首次上牌', '表显里程', '门店', '库龄', '排放标准', '评估师', '排量', 'VIN码', '车辆编号', '出厂日期',
         '网络标价', '采购类型', '采购价', '采购日期', '展厅标价', '销售底价', '批发价', '新车指导价', '库存描述', '库存描述', "图片"];
     const list = records.map(v => {
@@ -33,8 +54,10 @@ function exportVehicleData(records) {
         arr.push(_.get(fieldObj, 'car_field_operation_phase'))
         arr.push(_.get(fieldObj, 'car_field_stock_status'))
         arr.push(_.get(fieldObj, 'car_field_weidian_is_upshelf'))
-        arr.push(_.get(v, 'keyField.brandName'))
-        arr.push(_.get(v, 'keyField.seriesName'))
+        let brand = _.get(v, 'keyField.brandName');
+        arr.push(brand);
+        let series = _.get(v, 'keyField.seriesName');
+        arr.push(series);
         arr.push(_.get(v, 'keyField.modelName'))
         arr.push(_.get(fieldObj, 'car_field_first_license_plate_date'))
         arr.push(_.get(fieldObj, 'car_field_mileage'))
@@ -43,7 +66,8 @@ function exportVehicleData(records) {
         arr.push(_.get(fieldObj, 'car_field_emission_standard'))
         arr.push(_.get(fieldObj, 'car_field_assessor_name'))
         arr.push(_.get(fieldObj, 'car_field_engine_volume_liter'))
-        arr.push(_.get(fieldObj, 'car_field_vin_number'))
+        let vin = _.get(fieldObj, 'car_field_vin_number');
+        arr.push(vin);
         arr.push(_.get(fieldObj, 'car_field_vehicle_number'))
         arr.push(_.get(fieldObj, 'car_field_production_date'))
         arr.push(_.get(fieldObj, 'car_field_sale_price'))
@@ -58,12 +82,17 @@ function exportVehicleData(records) {
         arr.push(_.get(fieldObj, 'car_field_manager_price'))
         const pic = _.get(v, 'carRecord.carPicture');
         arr.push(pic);
-        download(pic,_.get(v, 'keyField.modelName'))
+        const dir = vin + "_" + brand + series + "-" + getTimeStr();
+        download(pic, dir);
         return arr;
     });
-    exportFile('车辆信息', header, list);
+    exportFile(fileName, header, list);
 
+}
 
+function getTimeStr(){
+    const date = new Date();
+    return [date.getFullYear(), date.getMonth(), date.getDay()].join("");
 }
 
 //请求客户数据
@@ -162,12 +191,12 @@ function exportOrder(records) {
 }
 
 
-function download(url,fileName) {
+function download(url,dir) {
     const f=  url.replace(/http.*\//,'')
     console.log('下载文件', url);
     chrome.downloads.download({
         url: url,
-        filename: f,
+        filename: dir+'/'+f,
         saveAs: !1,
         conflictAction: "overwrite"
     });
