@@ -1,25 +1,50 @@
 //点击下载数据
-function fetchVehicleData() {
-    const arr = [{name: '在售', body: ON_SALE},
-        {name: '在售已上架', body: yishangjia},
-        {name: '寄售代销', body: car_tt_sale},
-        {name: '在售未上架', body: car_zaishouweishangjia},
-        {name: '已售', body: car_sold},
-        {name: '已预定', body: car_booked},
-        {name: '退库', body: car_retreat_from_storage},
-        {name: '交强险30天内', body: car_jiaoqiangxiandaoqi_30},
-        {name: '商业险到期30天内', body: car_shangyexiandaoqi_30},
-        {name: '年检到期30天内', body: car_car_nianjiandaoqi_30},
-        {name: '联盟代销', body: car_LMDX},
-    ];
-    for (let requestBody of arr) {
-        fetchVehicleDataByParam(requestBody);
-    }
+function onVehicleDownload() {
+    fetchTags();
 }
 
-function fetchVehicleDataByParam(params) {
-    const {name, body} = params;
-    body.pageSize = 200;
+//拉取顶部标签
+function fetchTags() {
+    fetch("http://danube-chord.souche.com/generic/viewManageAction/listView.json?objCode=car")
+        .then(toJson)
+        .then(data => {
+            for (let view of data.views) {
+                const {name, code} = view;
+                const body = {
+                    objCode: "car",
+                    viewCode: code,
+                    filters: [],
+                    keywords: "",
+                    pageNo: 1,
+                    pageSize: 1,
+                    sort: {
+                        chosen: true,
+                        fieldCode: "car_field_date_create",
+                        fieldName: "创建时间",
+                        isBuildIn: true,
+                        ruleName: "最近创建",
+                        sortType: "desc"
+                    }
+                };
+                fetchVehicleDataByParam(name, body);
+            }
+        })
+}
+
+function toJson(response) {
+    const res = response.json();
+    return res.then(resp => {
+        const {success, code, data} = resp;
+        if (success && code === '200') {
+            return data;
+        }
+        console.info('下载错误', resp);
+        return Promise.reject("error");
+    })
+}
+
+
+function fetchVehicleDataByParam(name, body) {
     fetch("http://crazyracing-kartrider.souche.com/web/v3/carViewQuery/queryRecordPageInfoForPc.json",
         {
             method: 'post',
@@ -39,7 +64,7 @@ function fetchVehicleDataByParam(params) {
 
 
 function exportVehicleData(fileName, records) {
-    const header = ['车辆来源', '车辆状态', '库存状态', '微店上架', '品牌', '车系', '车型', '首次上牌', '表显里程', '门店', '库龄', '排放标准', '评估师', '排量', 'VIN码', '车辆编号', '出厂日期',
+    const header = ["carId",'车辆来源', '车辆状态', '库存状态', '微店上架', '品牌', '车系', '车型', '首次上牌', '表显里程', '门店', '库龄', '排放标准', '评估师', '排量', 'VIN码', '车辆编号', '出厂日期',
         '网络标价', '采购类型', '采购价', '采购日期', '展厅标价', '销售底价', '批发价', '新车指导价', '库存描述', '库存描述', "图片"];
     const list = records.map(v => {
         const fieldObj = {};
@@ -50,6 +75,7 @@ function exportVehicleData(fileName, records) {
         });
 
         const arr = [];
+        arr.push(recordId);
         arr.push(_.get(fieldObj, 'car_field_source_car'))
         arr.push(_.get(fieldObj, 'car_field_operation_phase'))
         arr.push(_.get(fieldObj, 'car_field_stock_status'))
@@ -230,8 +256,8 @@ function download(url, dir) {
         chrome.downloads.download({
             url: url,
             filename: dir + '/' + f,
-            saveAs: !1,
-            conflictAction: "overwrite"
+            saveAs: false,
+            conflictAction: "uniquify",
         });
     }
 

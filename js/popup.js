@@ -229,7 +229,7 @@ $('#mock_fetch_data').click(e=>{
 })
 
 $('#fetchVehicleData').click(e=>{
-	chrome.extension.getBackgroundPage().fetchVehicleData();
+	chrome.extension.getBackgroundPage().onVehicleDownload();
 })
 
 $('#fetchAccountData').click(e=>{
