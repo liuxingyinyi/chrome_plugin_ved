@@ -16,7 +16,7 @@ function fetchTags() {
                     filters: [],
                     keywords: "",
                     pageNo: 1,
-                    pageSize: 1,
+                    pageSize: 200,
                     sort: {
                         chosen: true,
                         fieldCode: "car_field_date_create",
