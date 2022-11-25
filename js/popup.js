@@ -232,6 +232,10 @@ $('#fetchVehicleData').click(e=>{
 	chrome.extension.getBackgroundPage().onVehicleDownload();
 })
 
+$('#fetchVehicleFullData').click(e=>{
+    chrome.extension.getBackgroundPage().onVehicleFullDataDownload();
+})
+
 $('#fetchAccountData').click(e=>{
 	chrome.extension.getBackgroundPage().fetchAccountData();
 })

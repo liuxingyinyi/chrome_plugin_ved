@@ -1,70 +1,88 @@
-//点击下载数据
-function onVehicleDownload() {
-    fetchTags();
-}
-
-//拉取顶部标签
-function fetchTags() {
-    fetch("http://danube-chord.souche.com/generic/viewManageAction/listView.json?objCode=car")
-        .then(toJson)
-        .then(data => {
-            for (let view of data.views) {
-                const {name, code} = view;
-                const body = {
-                    objCode: "car",
-                    viewCode: code,
-                    filters: [],
-                    keywords: "",
-                    pageNo: 1,
-                    pageSize: 200,
-                    sort: {
-                        chosen: true,
-                        fieldCode: "car_field_date_create",
-                        fieldName: "创建时间",
-                        isBuildIn: true,
-                        ruleName: "最近创建",
-                        sortType: "desc"
-                    }
-                };
-                fetchVehicleDataByParam(name, body);
-            }
-        })
-}
-
-function toJson(response) {
-    const res = response.json();
-    return res.then(resp => {
-        const {success, code, data} = resp;
-        if (success && code === '200') {
-            return data;
-        }
-        console.info('下载错误', resp);
-        return Promise.reject("error");
-    })
-}
-
-
-function fetchVehicleDataByParam(name, body) {
-    fetch("http://crazyracing-kartrider.souche.com/web/v3/carViewQuery/queryRecordPageInfoForPc.json",
-        {
-            method: 'post',
-            body: JSON.stringify(body)
-        }
-    )
+/*统一请求http数据*/
+function fetchData(url, init) {
+    return fetch(url, init)
         .then(response => response.json())
         .then(json => {
-            console.info("数据拉取成功", json)
-            const records = json.data.common.records;
-            exportVehicleData('车源数据-' + name, records)
+            const {code, data, msg} = json;
+            if (code === '200') {
+                return data;
+            } else {
+                throw msg
+            }
+        }).catch(e => {
+            console.info("请求失败", e);
+            alert('下载失败，请重试');
         })
-        .catch(function (err) {
-            console.log('Fetch错误:' + err);
-        });
 }
 
+/*车辆图片下载标记*/
+let vehiclePicDownloadFlag = false;
+
+
+//点击下载数据
+function onVehicleDownload() {
+    vehiclePicDownloadFlag = false;
+    fetchVehicleData();
+}
+
+//下载车源数据+图片数据
+function onVehicleFullDataDownload() {
+    vehiclePicDownloadFlag = true;
+    fetchVehicleData();
+}
+
+//拉取顶部标签   {name, code}
+function fetchTags() {
+    return fetchData("http://danube-chord.souche.com/generic/viewManageAction/listView.json?objCode=car")
+        .then(data => data.views);
+}
+
+/**
+ * 下载完整车辆数据
+ */
+function fetchVehicleData() {
+    fetchTags().then(views => {
+        for (let view of views) {
+            const {name, code} = view;
+            const body = {
+                objCode: "car",
+                viewCode: code,
+                filters: [],
+                keywords: "",
+                pageNo: 1,
+                pageSize: 100,
+                sort: {
+                    chosen: true,
+                    fieldCode: "car_field_date_create",
+                    fieldName: "创建时间",
+                    isBuildIn: true,
+                    ruleName: "最近创建",
+                    sortType: "desc"
+                }
+            };
+            const fetchArr = [];
+            for (let page = 1; page <= 10; page++) {
+                const requestBody = {...body, pageNo: page};
+                const req = fetchData("http://crazyracing-kartrider.souche.com/web/v3/carViewQuery/queryRecordPageInfoForPc.json",
+                    {
+                        method: 'post',
+                        body: JSON.stringify(requestBody)
+                    });
+                fetchArr.push(req);
+            }
+            Promise.all(fetchArr).then(values => {
+                let records = [];
+                values.map(data => {
+                    records = records.concat(data.common.records);
+                });
+                exportVehicleData('车源数据-' + name, records);
+            });
+        }
+    });
+}
 
 function exportVehicleData(fileName, records) {
-    const header = ["carId",'车辆来源', '车辆状态', '库存状态', '微店上架', '品牌', '车系', '车型', '首次上牌', '表显里程', '门店', '库龄', '排放标准', '评估师', '排量', 'VIN码', '车辆编号', '出厂日期',
+    const header = ["carId", '车辆来源', '车辆状态', '库存状态', '微店上架', '品牌', '车系', '车型', '首次上牌', '表显里程', '门店', '库龄', '排放标准', '评估师', '排量', 'VIN码', '车辆编号', '出厂日期',
         '网络标价', '采购类型', '采购价', '采购日期', '展厅标价', '销售底价', '批发价', '新车指导价', '库存描述', '库存描述', "图片"];
     const list = records.map(v => {
         const fieldObj = {};
@@ -108,9 +126,12 @@ function exportVehicleData(fileName, records) {
         arr.push(_.get(fieldObj, 'car_field_manager_price'))
         const pic = _.get(v, 'carRecord.carPicture');
         arr.push(pic);
-        const dir = vin + "_" + brand + series + "-" + recordId;
-        download(pic, dir);
-        fetchVehicleDetail(dir, recordId);
+        //下载详细的图片数据
+        if (vehiclePicDownloadFlag) {
+            const dir = vin + "_" + brand + series + "-" + recordId;
+            download(pic, dir);
+            fetchVehicleDetail(dir, recordId);
+        }
         return arr;
     });
     exportFile(fileName, header, list);
@@ -148,11 +169,6 @@ function fetchVehicleDetail(dir, recordId) {
         });
 }
 
-
-function getTimeStr() {
-    const date = new Date();
-    return [date.getFullYear(), date.getMonth(), date.getDay()].join("");
-}
 
 //请求客户数据
 function fetchAccountData() {
