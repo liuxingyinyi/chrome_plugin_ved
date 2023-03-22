@@ -96,7 +96,7 @@ const VEHICLE_REQUEST_BODY = {
 /*客户请求参数*/
 const ACCOUNT_REQUEST_BODY = {
     pageNo: 1,
-    pageSize: 200,
+    pageSize: 100,
     sort: {
         chosen: true,
         fieldCode: "customer_field_last_follow_up_time",

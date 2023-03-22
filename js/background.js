@@ -171,8 +171,26 @@ function fetchVehicleDetail(dir, recordId) {
 
 
 //请求客户数据
-function fetchAccountData() {
-    const reqeustBody = ACCOUNT_REQUEST_BODY;
+async function fetchAccountData() {
+    const list = [];
+    debugger
+    for (let i = 1; ; i++) {
+        const records = await fetchAccountDataByPage(i);
+        if (records.length === 0) {
+            break
+        }
+        list.push(...records);
+    }
+    exportAccount(list);
+}
+
+/**
+ * 单页拉取客户数据
+ * @returns {Promise<any>}
+ */
+function fetchAccountDataByPage(page) {
+    const reqeustBody = JSON.parse(JSON.stringify(ACCOUNT_REQUEST_BODY));
+    reqeustBody.pageNo = page;
     return fetch("http://super-mario.souche.com/v1/crm/customerViewAction/queryCustomerRecordPageInfo.json",
         {
             method: 'post',
@@ -183,16 +201,17 @@ function fetchAccountData() {
         .then(json => {
             console.info("数据拉取成功", json);
             const records = json.data.common.records;
-            exportAccount(records);
+            return records;
         })
         .catch(function (err) {
             console.log('Fetch错误:' + err);
         });
 }
 
+
 /*导出客户数据*/
 function exportAccount(records) {
-    const header = ['姓名', "电话", "区域", "重点客户", "预算", "预计买车时间", "意向车系", "下次跟进时间", "最近跟进内容",
+    const header = ["recordId", '姓名', "电话", "区域", "重点客户", "预算", "预计买车时间", "意向车系", "下次跟进时间", "最近跟进内容",
         "销售", "客户来源"];
     const list = records.map(v => {
         const arr = [];
@@ -201,6 +220,7 @@ function exportAccount(records) {
             const {code, value, displayValue} = f;
             fieldObj[code] = displayValue || value
         });
+        arr.push(_.get(v, 'recordId'))
         arr.push(_.get(v, 'keyField.value'))
         arr.push(_.get(v, 'phone.displayValue'))
         arr.push(_.get(v, 'phone.area'))
